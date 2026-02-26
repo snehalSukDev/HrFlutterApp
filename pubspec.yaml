@@ -1,0 +1,43 @@
+name: hr_mobile_flutter
+description: HR mobile app rebuilt in Flutter based on HR_mobile_react_native
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.2
+  dio: ^5.4.0
+  cookie_jar: ^4.0.0
+  dio_cookie_manager: ^3.1.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+  intl: ^0.18.1
+  geolocator: ^10.1.0
+  webview_flutter: ^4.7.0
+  url_launcher: ^6.2.5
+  path_provider: ^2.1.2
+  open_filex: ^4.4.0
+  share_plus: ^7.2.1
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  fluttertoast: ^8.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/login/bg1.png
+    - assets/images/login/bg2.png
+    - assets/images/login/bg3.png
+    - assets/images/techbirdbg.png
+    - assets/images/techbirdicon.png
+    - assets/images/techbirdlogonew.png
