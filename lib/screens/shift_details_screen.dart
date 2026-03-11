@@ -1,9 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
 
 class ShiftDetailsScreen extends StatefulWidget {
   final String? currentUserEmail;
@@ -283,6 +283,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: MainAppBar(
         title: 'Shift',
         onLogout: widget.onLogout,
@@ -316,6 +317,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
           Text(
             _error!,
             textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white),
           ),
           const SizedBox(height: 12),
           ElevatedButton(
@@ -326,40 +328,43 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: 100,
+      ),
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Shift Roster $_monthDisplay',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.white,
+              ),
             ),
             Row(
               children: [
                 IconButton(
                   onPressed: () => _changeMonth(-1),
-                  icon: const Icon(Icons.chevron_left),
+                  icon: const Icon(Icons.chevron_left, color: Colors.white),
                 ),
                 IconButton(
                   onPressed: () => _changeMonth(1),
-                  icon: const Icon(Icons.chevron_right),
+                  icon: const Icon(Icons.chevron_right, color: Colors.white),
                 ),
               ],
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Card(
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color.fromARGB(255, 43, 26, 26)
-              : null,
+        GlassContainer(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.black,
+          opacity: 0.5,
           child: Column(
             children: [
               Container(
@@ -367,9 +372,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(12),
                   ),
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color.fromARGB(255, 43, 26, 26)
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -381,6 +384,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                         'Date',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -390,6 +394,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                         'Day',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -399,6 +404,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                         'Shift',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -409,6 +415,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -419,6 +426,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -440,10 +448,13 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                       Icon(
                         Icons.calendar_today,
                         size: 40,
-                        color: Colors.grey,
+                        color: Colors.white54,
                       ),
                       SizedBox(height: 8),
-                      Text('No shifts assigned for this month.'),
+                      Text(
+                        'No shifts assigned for this month.',
+                        style: TextStyle(color: Colors.white70),
+                      ),
                     ],
                   ),
                 )
@@ -458,17 +469,11 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                     return Container(
                       decoration: BoxDecoration(
                         color: isWeekend
-                            ? (Theme.of(context).brightness == Brightness.dark
-                                ? const Color.fromARGB(255, 43, 26, 26)
-                                : const Color(0xFFEF5350)
-                                    .withValues(alpha: 0.03))
+                            ? Colors.redAccent.withValues(alpha: 0.1)
                             : Colors.transparent,
                         border: Border(
                           bottom: BorderSide(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade700
-                                    : const Color(0xFFDEE2E6),
+                            color: Colors.white.withValues(alpha: 0.1),
                             width: 0.5,
                           ),
                         ),
@@ -483,18 +488,21 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                             flex: 2,
                             child: Text(
                               _formatDate(dateStr),
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ),
                           Expanded(
                             flex: 1,
                             child: Text(
                               date == null ? '' : _weekdayShort(date),
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ),
                           Expanded(
                             flex: 2,
                             child: Text(
                               item['shift_type']?.toString() ?? 'N/A',
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ),
                           Expanded(
@@ -502,6 +510,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                             child: Text(
                               _formatTime(item['start_time']?.toString()),
                               textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ),
                           Expanded(
@@ -509,6 +518,7 @@ class _ShiftDetailsScreenState extends State<ShiftDetailsScreen> {
                             child: Text(
                               _formatTime(item['end_time']?.toString()),
                               textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white70),
                             ),
                           ),
                         ],

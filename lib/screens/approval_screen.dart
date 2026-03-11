@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
+import '../widgets/glass/glass_button.dart';
+import '../widgets/glass/app_background.dart';
 
 class ApprovalScreen extends StatefulWidget {
   final String? currentUserEmail;
@@ -333,87 +336,74 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final theme = Theme.of(ctx);
-        return Container(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 16 + MediaQuery.of(ctx).padding.bottom,
-            top: 16,
-          ),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(20),
+        return GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Expense Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  label: 'Employee',
+                  value: item['employee_name']?.toString() ?? '',
+                ),
+                _InfoRow(
+                  label: 'Amount',
+                  value: '₹ ${(item['total_claimed_amount'] ?? 0).toString()}',
+                ),
+                _InfoRow(
+                  label: 'Date',
+                  value: _formatDate(item['posting_date']?.toString()),
+                ),
+                _InfoRow(
+                  label: 'Status',
+                  value: status,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () {
+                          _changeExpenseStatus(item, 'Rejected');
+                        },
+                        label: 'Reject',
+                        color: Colors.redAccent.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () {
+                          _changeExpenseStatus(item, 'Approved');
+                        },
+                        label: 'Approve',
+                        color: Colors.greenAccent.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Expense Details',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _InfoRow(
-                label: 'Employee',
-                value: item['employee_name']?.toString() ?? '',
-              ),
-              _InfoRow(
-                label: 'Amount',
-                value: '₹ ${(item['total_claimed_amount'] ?? 0).toString()}',
-              ),
-              _InfoRow(
-                label: 'Date',
-                value: _formatDate(item['posting_date']?.toString()),
-              ),
-              _InfoRow(
-                label: 'Status',
-                value: status,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                      ),
-                      onPressed: () {
-                        _changeExpenseStatus(item, 'Rejected');
-                      },
-                      child: const Text('Reject'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                      ),
-                      onPressed: () {
-                        _changeExpenseStatus(item, 'Approved');
-                      },
-                      child: const Text('Approve'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
         );
       },
@@ -431,102 +421,83 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final theme = Theme.of(ctx);
-        return Container(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 16 + MediaQuery.of(ctx).padding.bottom,
-            top: 16,
-          ),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(20),
+        return GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Leave Application',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(
+                  label: 'Employee',
+                  value: item['employee_name']?.toString() ?? '',
+                ),
+                _InfoRow(
+                  label: 'Period',
+                  value:
+                      '${_formatDate(item['from_date']?.toString())} - ${_formatDate(item['to_date']?.toString())}',
+                ),
+                _InfoRow(
+                  label: 'Days',
+                  value: (item['total_leave_days'] ?? 0).toString(),
+                ),
+                _InfoRow(
+                  label: 'Type',
+                  value: item['leave_type']?.toString() ?? '',
+                ),
+                _InfoRow(
+                  label: 'Status',
+                  value: status,
+                ),
+                _InfoRow(
+                  label: 'Reason',
+                  value: item['description']?.toString() ?? '',
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () {
+                          _changeLeaveStatus(item, 'Rejected');
+                        },
+                        label: 'Reject',
+                        color: Colors.redAccent.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () {
+                          _changeLeaveStatus(item, 'Approved');
+                        },
+                        label: 'Approve',
+                        color: Colors.greenAccent.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Leave Application',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _InfoRow(
-                label: 'ID',
-                value: item['name']?.toString() ?? '',
-              ),
-              _InfoRow(
-                label: 'Employee',
-                value: item['employee_name']?.toString() ?? '',
-              ),
-              _InfoRow(
-                label: 'Period',
-                value:
-                    '${_formatDate(item['from_date']?.toString())} - ${_formatDate(item['to_date']?.toString())}',
-              ),
-              _InfoRow(
-                label: 'Days',
-                value: (item['total_leave_days'] ?? 0).toString(),
-              ),
-              _InfoRow(
-                label: 'Type',
-                value: item['leave_type']?.toString() ?? '',
-              ),
-              _InfoRow(
-                label: 'Status',
-                value: status,
-              ),
-              _InfoRow(
-                label: 'Reason',
-                value: item['description']?.toString().trim().isEmpty == true
-                    ? 'N/A'
-                    : item['description'].toString(),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                      ),
-                      onPressed: () {
-                        _changeLeaveStatus(item, 'Approved');
-                      },
-                      child: const Text('Approve'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                      ),
-                      onPressed: () {
-                        _changeLeaveStatus(item, 'Rejected');
-                      },
-                      child: const Text('Reject'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
         );
       },
@@ -536,23 +507,25 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Approvals',
-        onLogout: widget.onLogout,
-        userInitials: widget.userInitials ?? widget.currentUserEmail,
-        currentUserEmail: widget.currentUserEmail,
-        currentEmployeeId: widget.currentEmployeeId,
-        showBack: true,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () {
-          setState(() {
-            _refreshing = true;
-          });
-          return _loadData(refresh: true);
-        },
-        child: _buildBody(theme),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: MainAppBar(
+          title: 'Approvals',
+          onLogout: widget.onLogout,
+          userInitials: widget.userInitials,
+          currentUserEmail: widget.currentUserEmail,
+          currentEmployeeId: widget.currentEmployeeId,
+        ),
+        body: RefreshIndicator(
+          onRefresh: () {
+            setState(() {
+              _refreshing = true;
+            });
+            return _loadData(refresh: true);
+          },
+          child: _buildBody(theme),
+        ),
       ),
     );
   }
@@ -615,20 +588,16 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: _docTypeTab == 'expense'
-                    ? const Color(0xFF271085)
-                    : theme.colorScheme.surface,
+                    ? Colors.blueAccent
+                    : Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: const Color(0xFF271085),
-                ),
               ),
               alignment: Alignment.center,
               child: Text(
                 'Expense',
                 style: TextStyle(
-                  color: _docTypeTab == 'expense'
-                      ? Colors.white
-                      : const Color.fromARGB(255, 162, 161, 165),
+                  color:
+                      _docTypeTab == 'expense' ? Colors.white : Colors.white70,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -652,20 +621,15 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
               height: 44,
               decoration: BoxDecoration(
                 color: _docTypeTab == 'leave'
-                    ? const Color(0xFF271085)
-                    : theme.colorScheme.surface,
+                    ? Colors.blueAccent
+                    : Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: const Color(0xFF271085),
-                ),
               ),
               alignment: Alignment.center,
               child: Text(
                 'Leave',
                 style: TextStyle(
-                  color: _docTypeTab == 'leave'
-                      ? Colors.white
-                      : const Color.fromARGB(255, 162, 161, 165),
+                  color: _docTypeTab == 'leave' ? Colors.white : Colors.white70,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -681,42 +645,44 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
     required String title,
     required int count,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.list_alt,
-            color: Color(0xFF6B7280),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(12),
+      color: Colors.black,
+      opacity: 0.2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.list_alt,
+              color: Colors.white70,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF271085),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$count',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -732,7 +698,8 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
           children: [
             Text(
               'Filter:',
-              style: theme.textTheme.bodyMedium?.copyWith(),
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
             ),
             const SizedBox(width: 8),
             Wrap(
@@ -747,7 +714,15 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
                   ChoiceChip(
                     label: Text(opt),
                     selected: _expenseStatus == opt,
-                    selectedColor: const Color.fromARGB(255, 211, 209, 209),
+                    selectedColor: Colors.blueAccent,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    labelStyle: TextStyle(
+                      color:
+                          _expenseStatus == opt ? Colors.white : Colors.white70,
+                    ),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
                     onSelected: (_) {
                       setState(() {
                         _expenseStatus = opt;
@@ -761,11 +736,16 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         ),
         const SizedBox(height: 12),
         TextField(
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Search Employee...',
-            prefixIcon: const Icon(Icons.search),
+            hintStyle: const TextStyle(color: Colors.white38),
+            prefixIcon: const Icon(Icons.search, color: Colors.white70),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide.none,
             ),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
@@ -790,15 +770,12 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         ),
         const SizedBox(height: 12),
         if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 24),
+          const Padding(
+            padding: EdgeInsets.only(top: 24),
             child: Center(
               child: Text(
                 'No pending approvals.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color:
-                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                ),
+                style: TextStyle(color: Colors.white70),
               ),
             ),
           )
@@ -816,97 +793,94 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
                     : 'Draft';
             final bg = _statusBackground(statusRaw);
             final textColor = _statusTextColor(statusRaw);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Card(
-                elevation: 1,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color.fromARGB(255, 43, 26, 26)
-                    : null,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    _openExpenseDetail(item);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.surface,
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.account_balance_wallet_outlined,
-                            color: theme.iconTheme.color,
-                          ),
+            return GlassContainer(
+              margin: const EdgeInsets.only(bottom: 8),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.black,
+              opacity: 0.5,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  _openExpenseDetail(item);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                date,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                            ],
-                          ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: Colors.white,
+                          size: 20,
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '₹ $amount',
+                              name,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: bg,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                statusRaw,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
-                                ),
+                            Text(
+                              date,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '₹ $amount',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: bg.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              statusRaw,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -927,7 +901,8 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
           children: [
             Text(
               'Filter:',
-              style: theme.textTheme.bodyMedium,
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
             ),
             const SizedBox(width: 8),
             Wrap(
@@ -941,8 +916,17 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
                 ])
                   ChoiceChip(
                     label: Text(opt['label']!),
-                    selectedColor: const Color.fromARGB(255, 211, 209, 209),
                     selected: _leaveStatus == opt['value'],
+                    selectedColor: Colors.blueAccent,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    labelStyle: TextStyle(
+                      color: _leaveStatus == opt['value']
+                          ? Colors.white
+                          : Colors.white70,
+                    ),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
                     onSelected: (_) {
                       setState(() {
                         _leaveStatus = opt['value']!;
@@ -956,11 +940,16 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         ),
         const SizedBox(height: 12),
         TextField(
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Search Employee...',
-            prefixIcon: const Icon(Icons.search),
+            hintStyle: const TextStyle(color: Colors.white38),
+            prefixIcon: const Icon(Icons.search, color: Colors.white70),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide.none,
             ),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
@@ -985,118 +974,102 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         ),
         const SizedBox(height: 12),
         if (items.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 24),
+          const Padding(
+            padding: EdgeInsets.only(top: 24),
             child: Center(
               child: Text(
-                'No leave applications found.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color:
-                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                ),
+                'No pending leaves.',
+                style: TextStyle(color: Colors.white70),
               ),
             ),
           )
         else
           ...items.map((raw) {
             final item = raw as Map<String, dynamic>;
-            final name = item['employee_name']?.toString() ?? '';
-            final fromDate = _formatDate(item['from_date']?.toString());
-            final toDate = _formatDate(item['to_date']?.toString());
-            final days = (item['total_leave_days'] ?? 0).toString();
-            final type = item['leave_type']?.toString() ?? '';
-            final status = (item['status']?.toString() ?? '').isEmpty ||
+            final name = item['employee_name']?.toString() ??
+                item['name']?.toString() ??
+                '';
+            final from = _formatDate(item['from_date']?.toString());
+            final to = _formatDate(item['to_date']?.toString());
+            final type = item['leave_type']?.toString() ?? 'Leave';
+            final statusRaw = (item['status']?.toString() ?? '').isEmpty ||
                     item['status'] == 'Open' ||
                     item['docstatus'] == 0
                 ? 'Pending'
                 : item['status'].toString();
-            final bg = _statusBackground(status);
-            final textColor = _statusTextColor(status);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Card(
-                elevation: 1,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color.fromARGB(255, 43, 26, 26)
-                    : null,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    _openLeaveDetail(item);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.colorScheme.surface,
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.beach_access_outlined,
-                            color: theme.iconTheme.color,
-                          ),
+            final bg = _statusBackground(statusRaw);
+            final textColor = _statusTextColor(statusRaw);
+            return GlassContainer(
+              margin: const EdgeInsets.only(bottom: 8),
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  _openLeaveDetail(item);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$fromDate - $toDate',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$days days • $type',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.date_range,
+                          color: Colors.white,
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: bg,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            status,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$type • $from -> $to',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: bg.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          statusRaw,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1118,7 +1091,6 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -1128,8 +1100,8 @@ class _InfoRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6B7280),
+              style: const TextStyle(
+                color: Colors.white70,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1138,7 +1110,7 @@ class _InfoRow extends StatelessWidget {
             flex: 3,
             child: Text(
               value,
-              style: theme.textTheme.bodySmall,
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],

@@ -5,6 +5,7 @@ import '../services/secure_storage.dart';
 import '../screens/onboarding_screen.dart';
 import '../screens/login_screen.dart';
 import '../navigation/app_navigator.dart';
+import '../widgets/glass/app_background.dart';
 
 class AppContainer extends StatefulWidget {
   const AppContainer({super.key});
@@ -51,6 +52,13 @@ class _AppContainerState extends State<AppContainer> {
         });
         return;
       }
+
+      // Restore session cookie if available
+      final storedCookie = await SecureStorage.getItem('sessionCookie');
+      if (storedCookie != null && storedCookie.isNotEmpty) {
+        FrappeApi.setCookieHeader(storedCookie);
+      }
+
       final userRes = await FrappeApi.getCurrentUser();
       final email = userRes['message']?.toString();
       if (email != null && email.isNotEmpty && email != 'Guest') {
@@ -107,6 +115,7 @@ class _AppContainerState extends State<AppContainer> {
       await SecureStorage.removeItem('frappeBaseUrl');
       await SecureStorage.removeItem('currentUserEmail');
       await SecureStorage.removeItem('currentEmployeeId');
+      await SecureStorage.removeItem('sessionCookie'); // Clear session
     } catch (_) {}
     if (!mounted) {
       return;
@@ -125,6 +134,12 @@ class _AppContainerState extends State<AppContainer> {
     FrappeApi.setBaseUrl(baseUrl);
     await SecureStorage.setItem('frappeBaseUrl', baseUrl);
     await SecureStorage.setItem('currentUserEmail', email);
+
+    // Save session cookie
+    if (FrappeApi.cookieHeader != null) {
+      await SecureStorage.setItem('sessionCookie', FrappeApi.cookieHeader!);
+    }
+
     try {
       final employee =
           await FrappeApi.fetchEmployeeDetails(email, byEmail: true);
@@ -133,7 +148,8 @@ class _AppContainerState extends State<AppContainer> {
       }
       setState(() {
         _currentUserEmail = email;
-        _currentEmployeeId = employee != null ? employee['name']?.toString() : null;
+        _currentEmployeeId =
+            employee != null ? employee['name']?.toString() : null;
         _authenticated = true;
       });
     } catch (_) {
@@ -164,10 +180,12 @@ class _AppContainerState extends State<AppContainer> {
         onLoginSuccess: _handleLoginSuccess,
       );
     }
-    return AppNavigator(
-      currentUserEmail: _currentUserEmail,
-      currentEmployeeId: _currentEmployeeId,
-      onLogout: _handleLogout,
+    return AppBackground(
+      child: AppNavigator(
+        currentUserEmail: _currentUserEmail,
+        currentEmployeeId: _currentEmployeeId,
+        onLogout: _handleLogout,
+      ),
     );
   }
 }

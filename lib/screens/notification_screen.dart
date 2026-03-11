@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/frappe_api.dart';
+import '../widgets/glass/glass_container.dart';
+import '../widgets/glass/glass_button.dart';
+import '../widgets/glass/app_background.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -160,10 +163,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final titleStyle = theme.textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w700,
-    );
     Widget body;
     if (_loading && !_refreshing) {
       body = const Center(
@@ -185,6 +184,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -197,7 +197,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
       );
     } else if (_notifications.isEmpty) {
       body = const Center(
-        child: Text('No New notifications'),
+        child: Text('No New notifications',
+            style: TextStyle(color: Colors.white70)),
       );
     } else {
       body = RefreshIndicator(
@@ -223,19 +224,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
             final statusColor = isRead ? Colors.grey : const Color(0xFF1D4ED8);
             final dateText = _formatDate(creation);
             final summary = body;
-            return Container(
+            return GlassContainer(
               margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: theme.brightness == Brightness.dark
-                    ? const Color(0xFF111827)
-                    : const Color(0xFFF8FAFF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isRead
-                      ? Colors.grey.withValues(alpha: 0.4)
-                      : const Color.fromARGB(255, 174, 180, 197),
-                ),
-              ),
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.black,
+              opacity: 0.4,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -247,8 +240,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         Expanded(
                           child: Text(
                             subject,
-                            style: theme.textTheme.bodyMedium?.copyWith(
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -259,7 +256,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.08),
+                            color: statusColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -277,7 +274,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       const SizedBox(height: 6),
                       Text(
                         dateText,
-                        style: theme.textTheme.bodySmall,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white54,
+                        ),
                       ),
                     ],
                     if (summary.isNotEmpty) ...[
@@ -286,28 +286,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         summary,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1D4ED8),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
+                      child: GlassButton(
+                        height: 36,
+                        width: 120,
                         onPressed: () {
                           _openDetail(item);
                         },
-                        child: const Text('Read more'),
+                        label: 'Read more',
+                        color: Colors.blueAccent.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -318,37 +313,35 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
       );
     }
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Notifications',
-                  style: titleStyle,
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: Colors.white, size: 20),
+            onPressed: () => Navigator.maybePop(context),
+          ),
+          title: const Text(
+            'Notifications',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            const SizedBox(height: 8),
-            Expanded(child: body),
-          ],
+          ),
+          centerTitle: true,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: body,
         ),
       ),
     );
   }
 
   void _openDetail(Map<String, dynamic> item) {
-    final theme = Theme.of(context);
     final parsed = _deriveSubjectAndBody(item);
     final subject = (parsed['subject'] ?? 'Notification').toString();
     final bodyText = (parsed['body'] ?? '').toString();
@@ -359,32 +352,37 @@ class _NotificationScreenState extends State<NotificationScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final localTheme = Theme.of(ctx);
-        return SafeArea(
-          top: false,
-          child: Container(
-            decoration: BoxDecoration(
-              color: localTheme.cardColor,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+        return GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                  MediaQuery.of(ctx).padding.bottom +
+                  24,
             ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
                         subject,
-                        style: localTheme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -392,7 +390,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   const SizedBox(height: 4),
                   Text(
                     dateText,
-                    style: localTheme.textTheme.bodySmall,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white54,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -400,7 +401,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   child: SingleChildScrollView(
                     child: Text(
                       bodyText.isEmpty ? 'No details available.' : bodyText,
-                      style: theme.textTheme.bodyMedium,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
                     ),
                   ),
                 ),

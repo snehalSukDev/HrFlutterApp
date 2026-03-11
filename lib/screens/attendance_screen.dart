@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
+import '../widgets/glass/glass_button.dart';
 
 class AttendanceScreen extends StatefulWidget {
   final String? currentUserEmail;
@@ -119,7 +121,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }
     try {
       final d = DateTime.parse(value.split(' ').first);
-      return '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year.toString().substring(2)}';
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
+      final month = months[d.month - 1];
+      return '${d.day.toString().padLeft(2, '0')} - $month - ${d.year.toString().substring(2)}';
     } catch (_) {
       return value;
     }
@@ -135,6 +152,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return Colors.blue.shade700;
       case 'Holiday':
         return Colors.orange.shade700;
+      case 'Work From Home':
+        return const Color.fromARGB(255, 21, 179, 152);
       default:
         return Colors.grey.shade700;
     }
@@ -143,6 +162,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: MainAppBar(
         title: 'Attendance',
         onLogout: widget.onLogout,
@@ -196,18 +216,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: [
         Row(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).dividerColor,
-                ),
-              ),
+            GlassContainer(
+              borderRadius: BorderRadius.circular(16),
               padding: const EdgeInsets.all(4),
               child: Row(
                 children: [
@@ -234,24 +248,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
             ),
             const Spacer(),
-            ElevatedButton.icon(
+            GlassButton(
               onPressed: _openAttendanceRequestForm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF271085),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-              ),
-              icon: const Icon(
-                Icons.add,
-                size: 20,
-              ),
-              label: const Text(
-                'Add Attendance',
-              ),
+              label: 'Add Attendance',
+              icon: Icons.add,
+              width: 160,
+              height: 44,
+              color:
+                  const Color.fromARGB(255, 21, 59, 126).withValues(alpha: 0.3),
             ),
           ],
         ),
@@ -266,13 +270,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Widget _buildListView(BuildContext context) {
     if (_records.isEmpty) {
-      return Card(
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
+      return GlassContainer(
+        borderRadius: BorderRadius.circular(12),
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: const Text(
             'No attendance records found.',
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: const TextStyle(color: Colors.white70),
           ),
         ),
       );
@@ -281,43 +285,45 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.view_agenda,
-                color: Color(0xFF6B7280),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Attendance List',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
+        GlassContainer(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.black,
+          opacity: 0.15,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.view_agenda,
+                  color: Colors.white70,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Attendance List',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF271085),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$count',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -326,75 +332,73 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           final status = (item['status'] ?? '').toString();
           final date = _formatDate(item['attendance_date']?.toString());
           final color = _statusColor(status);
-          final chipBg = color.withValues(alpha: 0.08);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Card(
-              elevation: 1,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey.withValues(alpha: 0.1),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.calendar_today,
-                        color: Color(0xFF6B7280),
-                      ),
+          final chipBg = color.withValues(alpha: 0.2);
+          return GlassContainer(
+            margin: const EdgeInsets.only(bottom: 8),
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.black,
+            opacity: 0.5,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            status.isEmpty ? 'Attendance' : status,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            date,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6B7280),
-                            ),
-                          ),
-                        ],
-                      ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.calendar_today,
+                      color: color,
+                      size: 16,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: chipBg,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        status.isEmpty ? 'Attendance' : status,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: color,
-                          fontWeight: FontWeight.w600,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          status.isEmpty ? 'Attendance' : status,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          date,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: chipBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      status.isEmpty ? 'Attendance' : status,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: color,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
@@ -443,11 +447,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+        GlassContainer(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.black,
+          opacity: 0.5,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
             child: Column(
@@ -457,17 +460,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   children: [
                     IconButton(
                       onPressed: () => _changeMonth(-1),
-                      icon: const Icon(Icons.chevron_left),
+                      icon: const Icon(Icons.chevron_left, color: Colors.white),
                     ),
                     Text(
                       monthLabel,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                     ),
                     IconButton(
                       onPressed: () => _changeMonth(1),
-                      icon: const Icon(Icons.chevron_right),
+                      icon:
+                          const Icon(Icons.chevron_right, color: Colors.white),
                     ),
                   ],
                 ),
@@ -542,7 +547,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (status == null || status.isEmpty) {
       return;
     }
-    final theme = Theme.of(context);
     final dateLabel = DateFormat('yyyy-MM-dd').format(date);
     final statusColor = _statusColor(status);
     showModalBottomSheet<void>(
@@ -550,54 +554,53 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       isScrollControlled: false,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final localTheme = Theme.of(ctx);
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          decoration: BoxDecoration(
-            color: localTheme.cardColor,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'Day Details',
-                    style: localTheme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+        return GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Day Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Divider(color: theme.dividerColor),
-              const SizedBox(height: 8),
-              _DetailRow(
-                label: 'Date',
-                value: dateLabel,
-              ),
-              const SizedBox(height: 8),
-              _DetailRow(
-                label: 'Status',
-                value: status,
-                chipColor: statusColor,
-              ),
-              const SizedBox(height: 8),
-              if (_employeeId != null && _employeeId!.isNotEmpty)
-                _DetailRow(
-                  label: 'Employee',
-                  value: _employeeId!,
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Close',
+                          style: TextStyle(color: Colors.blueAccent)),
+                    ),
+                  ],
                 ),
-            ],
+                const SizedBox(height: 8),
+                const Divider(color: Colors.white24),
+                const SizedBox(height: 8),
+                _DetailRow(
+                  label: 'Date',
+                  value: dateLabel,
+                ),
+                const SizedBox(height: 8),
+                _DetailRow(
+                  label: 'Status',
+                  value: status,
+                  chipColor: statusColor,
+                ),
+                const SizedBox(height: 8),
+                if (_employeeId != null && _employeeId!.isNotEmpty)
+                  _DetailRow(
+                    label: 'Employee',
+                    value: _employeeId!,
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -689,7 +692,9 @@ class _ViewToggleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     const selectedColor = Color(0xFF271085);
     return Material(
-      color: selected ? selectedColor : Colors.white,
+      color: selected
+          ? const Color.fromARGB(255, 150, 150, 153)
+          : const Color.fromARGB(255, 92, 72, 72),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -821,9 +826,6 @@ class _WeekdayLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseColor =
-        theme.textTheme.bodySmall?.color ?? theme.colorScheme.onSurface;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Center(
@@ -832,7 +834,7 @@ class _WeekdayLabel extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: baseColor.withValues(alpha: 0.7),
+            color: Colors.white.withValues(alpha: 0.7),
           ),
         ),
       ),
@@ -872,12 +874,10 @@ class _CalendarDay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseText = theme.textTheme.bodyMedium?.color ?? Colors.white;
     final statusValue = status;
     Color? fill;
     Color border = Colors.transparent;
-    Color textColor = baseText;
+    Color textColor = Colors.white;
     if (statusValue != null && statusValue.isNotEmpty) {
       final base = _statusColor(statusValue);
       fill = base.withValues(alpha: 0.22);
@@ -965,6 +965,22 @@ class _AttendanceRequestSheetState extends State<_AttendanceRequestSheet> {
       initialDate: initial ?? now,
       firstDate: first,
       lastDate: last,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.blueAccent,
+              onPrimary: Colors.white,
+              surface: Color.fromARGB(255, 41, 61, 92),
+              onSurface: Colors.white,
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF1E293B),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setter(picked);
@@ -1051,59 +1067,52 @@ class _AttendanceRequestSheetState extends State<_AttendanceRequestSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
+    return GlassContainer(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Text(
+                const Text(
                   'Attendance Request',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    color: Colors.white,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, color: Colors.white),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'From Date *',
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            const Text('From Date *', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 4),
             _DateField(
               label: _formatDate(_fromDate),
               onTap: () => _pickDate(context, (d) => _fromDate = d, _fromDate),
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'To Date *',
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            const Text('To Date *', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 4),
             _DateField(
               label: _formatDate(_toDate),
               onTap: () => _pickDate(context, (d) => _toDate = d, _toDate),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Checkbox(
                   value: _halfDay,
+                  activeColor: Colors.blueAccent,
+                  side: const BorderSide(color: Colors.white70),
                   onChanged: (value) {
                     setState(() {
                       _halfDay = value ?? false;
@@ -1111,31 +1120,30 @@ class _AttendanceRequestSheetState extends State<_AttendanceRequestSheet> {
                   },
                 ),
                 const SizedBox(width: 4),
-                const Text('Half Day'),
+                const Text('Half Day', style: TextStyle(color: Colors.white)),
               ],
             ),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Half Day Date',
-                style: theme.textTheme.bodySmall,
+            if (_halfDay) ...[
+              const SizedBox(height: 4),
+              const Text('Half Day Date',
+                  style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 4),
+              _DateField(
+                label: _formatDate(_halfDayDate),
+                onTap: () => _pickDate(
+                  context,
+                  (d) => _halfDayDate = d,
+                  _halfDayDate,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            _DateField(
-              label: _formatDate(_halfDayDate),
-              onTap: () => _pickDate(
-                context,
-                (d) => _halfDayDate = d,
-                _halfDayDate,
-              ),
-            ),
-            const SizedBox(height: 16),
+            ],
+            const SizedBox(height: 12),
             Row(
               children: [
                 Checkbox(
                   value: _includeHolidays,
+                  activeColor: Colors.blueAccent,
+                  side: const BorderSide(color: Colors.white70),
                   onChanged: (value) {
                     setState(() {
                       _includeHolidays = value ?? false;
@@ -1143,39 +1151,43 @@ class _AttendanceRequestSheetState extends State<_AttendanceRequestSheet> {
                   },
                 ),
                 const SizedBox(width: 4),
-                const Text('Include Holidays'),
+                const Text('Include Holidays',
+                    style: TextStyle(color: Colors.white)),
               ],
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Shift',
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            const SizedBox(height: 12),
+            const Text('Shift', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 4),
             TextField(
               controller: _shiftController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 hintText: 'Shift',
-                border: OutlineInputBorder(),
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Reason *',
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            const Text('Reason *', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Row(
               children: [
                 ChoiceChip(
                   label: const Text('Work From Home'),
-                  selectedColor: const Color.fromARGB(255, 211, 209, 209),
+                  selectedColor: Colors.blueAccent,
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  labelStyle: TextStyle(
+                    color: _reason == 'Work From Home'
+                        ? Colors.white
+                        : Colors.white70,
+                  ),
                   selected: _reason == 'Work From Home',
                   onSelected: (_) {
                     setState(() {
@@ -1186,7 +1198,11 @@ class _AttendanceRequestSheetState extends State<_AttendanceRequestSheet> {
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: const Text('On Duty'),
-                  selectedColor: const Color.fromARGB(255, 211, 209, 209),
+                  selectedColor: Colors.blueAccent,
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  labelStyle: TextStyle(
+                    color: _reason == 'On Duty' ? Colors.white : Colors.white70,
+                  ),
                   selected: _reason == 'On Duty',
                   onSelected: (_) {
                     setState(() {
@@ -1197,57 +1213,38 @@ class _AttendanceRequestSheetState extends State<_AttendanceRequestSheet> {
               ],
             ),
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Explanation',
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
+            const Text('Explanation', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 4),
             TextField(
               controller: _explanationController,
-              maxLines: 3,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
                 hintText: 'Explanation',
-                border: OutlineInputBorder(),
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed:
-                        _submitting ? null : () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Close'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _submitting ? null : _handleSubmit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text('Submit'),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: GlassButton(
+                onPressed: _handleSubmit,
+                label: _submitting ? 'Submitting...' : 'Submit Request',
+                color: const Color.fromARGB(255, 21, 59, 126)
+                    .withValues(alpha: 0.3),
+              ),
+            ),
+            SizedBox(
+              height: MediaQuery.of(context).viewInsets.bottom +
+                  MediaQuery.of(context).padding.bottom +
+                  24,
             ),
           ],
         ),
@@ -1267,22 +1264,27 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isPlaceholder = label == 'Select date';
-    final baseColor =
-        theme.textTheme.bodyMedium?.color ?? theme.colorScheme.onSurface;
-    final placeholderColor = baseColor.withValues(alpha: 0.6);
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      child: InputDecorator(
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isPlaceholder ? placeholderColor : baseColor,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isPlaceholder ? Colors.white38 : Colors.white,
+                fontSize: 14,
+              ),
+            ),
+            const Icon(Icons.calendar_today, color: Colors.white70, size: 20),
+          ],
         ),
       ),
     );

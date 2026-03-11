@@ -6,6 +6,9 @@ import 'package:intl/intl.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
+import '../widgets/glass/glass_button.dart';
+import '../widgets/glass/app_background.dart';
 
 class ExpenseClaimScreen extends StatefulWidget {
   final String? currentUserEmail;
@@ -77,6 +80,7 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
       }
       final params = {
         'filters': jsonEncode(filters),
+        'fields': '["*"]',
         'order_by': 'posting_date desc',
         'limit_page_length': '50',
       };
@@ -132,29 +136,30 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Expense Claim',
-        onLogout: widget.onLogout,
-        userInitials: widget.userInitials ?? widget.currentUserEmail,
-        currentUserEmail: widget.currentUserEmail,
-        currentEmployeeId: widget.currentEmployeeId,
-        showBack: true,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () {
-          setState(() {
-            _refreshing = true;
-          });
-          return _loadData(refresh: true);
-        },
-        child: _buildBody(context, theme),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: MainAppBar(
+          title: 'Expense Claim',
+          onLogout: widget.onLogout,
+          userInitials: widget.userInitials,
+          currentUserEmail: widget.currentUserEmail,
+          currentEmployeeId: widget.currentEmployeeId,
+        ),
+        body: RefreshIndicator(
+          onRefresh: () {
+            setState(() {
+              _refreshing = true;
+            });
+            return _loadData(refresh: true);
+          },
+          child: _buildBody(context),
+        ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, ThemeData theme) {
+  Widget _buildBody(BuildContext context) {
     if (_loading && !_refreshing) {
       return const Center(
         child: CircularProgressIndicator(),
@@ -176,6 +181,7 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -189,58 +195,53 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
     }
     final claims = _claims;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: [
         Row(
           children: [
             Expanded(
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF271085),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'My Claims',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+              child: GlassContainer(
+                height: 48,
+                borderRadius: BorderRadius.circular(24),
+                child: const Center(
+                  child: Text(
+                    'My Claims',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            ElevatedButton.icon(
+            GlassButton(
               onPressed: _openNewClaimSheet,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF271085),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-              ),
-              icon: const Icon(
-                Icons.add,
-                size: 20,
-              ),
-              label: const Text('New Claim'),
+              label: 'New Claim',
+              icon: Icons.add,
+              width: 140,
+              height: 44,
+              color:
+                  const Color.fromARGB(255, 21, 59, 126).withValues(alpha: 0.3),
             ),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Text(
+            const Text(
               'Filter:',
-              style: theme.textTheme.bodyMedium,
+              style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('All'),
-              selectedColor: const Color.fromARGB(255, 211, 209, 209),
+              selectedColor:
+                  const Color.fromARGB(255, 65, 99, 158).withValues(alpha: 0.3),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              labelStyle: TextStyle(
+                color: _statusFilter == 'All' ? Colors.white : Colors.white70,
+              ),
               selected: _statusFilter == 'All',
               onSelected: (_) {
                 setState(() {
@@ -250,191 +251,188 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
               },
             ),
             const Spacer(),
-            DropdownButton<String>(
-              value: _statusFilter,
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                setState(() {
-                  _statusFilter = value;
-                });
-                _loadData(refresh: true);
-              },
-              items: const [
-                DropdownMenuItem(
-                  value: 'All',
-                  child: Text('All'),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _statusFilter,
+                  dropdownColor: const Color(0xFF1E293B),
+                  style: const TextStyle(color: Colors.white),
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _statusFilter = value;
+                    });
+                    _loadData(refresh: true);
+                  },
+                  items: const [
+                    DropdownMenuItem(value: 'All', child: Text('All')),
+                    DropdownMenuItem(value: 'Draft', child: Text('Draft')),
+                    DropdownMenuItem(
+                        value: 'Submitted', child: Text('Submitted')),
+                    DropdownMenuItem(
+                        value: 'Approved', child: Text('Approved')),
+                    DropdownMenuItem(value: 'Paid', child: Text('Paid')),
+                    DropdownMenuItem(
+                        value: 'Rejected', child: Text('Rejected')),
+                  ],
                 ),
-                DropdownMenuItem(
-                  value: 'Draft',
-                  child: Text('Draft'),
-                ),
-                DropdownMenuItem(
-                  value: 'Submitted',
-                  child: Text('Submitted'),
-                ),
-                DropdownMenuItem(
-                  value: 'Approved',
-                  child: Text('Approved'),
-                ),
-                DropdownMenuItem(
-                  value: 'Paid',
-                  child: Text('Paid'),
-                ),
-                DropdownMenuItem(
-                  value: 'Rejected',
-                  child: Text('Rejected'),
-                ),
-              ],
+              ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.list_alt,
-                color: Color(0xFF6B7280),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'My Claims List',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
+        GlassContainer(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.black,
+          opacity: 0.2,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.list_alt,
+                  color: Colors.white70,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'My Claims List',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF271085),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${claims.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${claims.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
         if (claims.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 24),
+          const Padding(
+            padding: EdgeInsets.only(top: 24),
             child: Center(
               child: Text(
                 'No expense claims found.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color:
-                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                ),
+                style: TextStyle(color: Colors.white70),
               ),
             ),
           )
         else
           ...claims.map((raw) {
             final item = raw as Map<String, dynamic>;
-            final name = item['name']?.toString() ?? 'Expense Claim';
-            final date = _formatDate(item['posting_date']?.toString());
-            final currency = item['currency']?.toString() ?? '';
-            final total =
-                (item['grand_total'] ?? item['total_amount'] ?? 0).toString();
+            final name = item['name']?.toString() ?? '';
+            final date = _formatDate(item['expense_date']?.toString() ??
+                item['posting_date']?.toString());
             final status = item['status']?.toString() ?? 'Draft';
-            final statusColor = _statusColor(status);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Card(
-                elevation: 1,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color.fromARGB(255, 43, 26, 26)
-                    : null,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            final total = item['custom_expense_amount']?.toString() ??
+                item['total_claimed_amount']?.toString() ??
+                '0.00';
+            final currency = item['custom_currency']?.toString() ?? 'INR';
+            final color = _statusColor(status);
+            return GestureDetector(
+              onTap: () {
+                _showClaimDetails(item);
+              },
+              child: GlassContainer(
+                margin: const EdgeInsets.only(bottom: 6),
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.black,
+                opacity: 0.5,
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   child: Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: theme.colorScheme.surface,
+                          color: color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
                         child: Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: theme.iconTheme.color,
+                          Icons.receipt_long,
+                          color: color,
+                          size: 16,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: color.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: color,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              date,
+                              '$date • $currency $total',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF6B7280),
+                                color: Colors.white54,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$currency $total',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              status,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: statusColor,
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -443,6 +441,19 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
             );
           }),
       ],
+    );
+  }
+
+  void _showClaimDetails(Map<String, dynamic> item) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return _ExpenseClaimDetailSheet(
+          claim: item,
+        );
+      },
     );
   }
 
@@ -487,11 +498,306 @@ class _ExpenseClaimScreenState extends State<ExpenseClaimScreen> {
   }
 }
 
+class _ExpenseClaimDetailSheet extends StatefulWidget {
+  final Map<String, dynamic> claim;
+
+  const _ExpenseClaimDetailSheet({required this.claim});
+
+  @override
+  State<_ExpenseClaimDetailSheet> createState() =>
+      _ExpenseClaimDetailSheetState();
+}
+
+class _ExpenseClaimDetailSheetState extends State<_ExpenseClaimDetailSheet> {
+  bool _loading = true;
+  String? _error;
+  Map<String, dynamic>? _fullClaim;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFullDetails();
+  }
+
+  Future<void> _loadFullDetails() async {
+    try {
+      final name = widget.claim['name']?.toString();
+      if (name == null) {
+        throw Exception('Invalid Claim ID');
+      }
+      final data = await FrappeApi.getResource('Expense Claim', name);
+      if (mounted) {
+        setState(() {
+          _fullClaim = data;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  String _formatDate(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'N/A';
+    }
+    try {
+      final d = DateTime.parse(value.split(' ').first);
+      return DateFormat('dd MMM yyyy').format(d);
+    } catch (_) {
+      return value;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Draft':
+        return Colors.orange.shade700;
+      case 'Submitted':
+      case 'Under Approval':
+        return Colors.blue.shade700;
+      case 'Approved':
+      case 'Paid':
+        return Colors.green.shade700;
+      case 'Rejected':
+        return Colors.red.shade700;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Expense Details',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _buildContent(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Text(
+          _error!,
+          style: const TextStyle(color: Colors.white),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    final claim = _fullClaim ?? widget.claim;
+    final name = claim['name']?.toString() ?? '';
+    final status = claim['status']?.toString() ?? 'Draft';
+    final postingDate = _formatDate(claim['posting_date']?.toString());
+    final total = claim['total_claimed_amount']?.toString() ?? '0.00';
+    final remarks = claim['custom_remarks']?.toString() ??
+        claim['remarks']?.toString() ??
+        '';
+    final expenses = claim['expenses'] as List<dynamic>? ?? [];
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GlassContainer(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white.withValues(alpha: 0.1),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _statusColor(status).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _statusColor(status).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            color: _statusColor(status),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildLabelValue('Posting Date', postingDate),
+                  const SizedBox(height: 8),
+                  _buildLabelValue('Total Amount', total),
+                  if (remarks.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _buildLabelValue('Remarks', remarks),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Expense Items',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (expenses.isEmpty)
+            const Text(
+              'No expense items found.',
+              style: TextStyle(color: Colors.white70),
+            )
+          else
+            ...expenses.map((e) {
+              debugPrint("Expense Item: $e");
+              final item = e as Map<String, dynamic>;
+              final expenseType = item['expense_type']?.toString() ?? '';
+              final date = _formatDate(item['expense_date']?.toString());
+              final amount = item['amount']?.toString() ??
+                  item['amount']?.toString() ??
+                  '0.00';
+              final currency = item['custom_currency']?.toString() ??
+                  item['currency']?.toString() ??
+                  'INR';
+              final description = item['description']?.toString() ?? '';
+
+              return GlassContainer(
+                margin: const EdgeInsets.only(bottom: 12),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withValues(alpha: 0.05),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              expenseType,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '$currency $amount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        date,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabelValue(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ],
+    );
+  }
+}
+
 class _ExpenseRowData {
-  DateTime? date;
+  DateTime? date = DateTime.now();
   String modeOfPayment = 'Cash';
-  String currency = '';
-  String type = '';
+  String currency = 'INR';
+  String? type;
   String amount = '';
 }
 
@@ -512,6 +818,78 @@ class _ExpenseClaimFormSheetState extends State<_ExpenseClaimFormSheet> {
   final TextEditingController _remarksController = TextEditingController();
   final List<_ExpenseRowData> _rows = [_ExpenseRowData()];
   bool _submitting = false;
+  List<String> _expenseTypes = [];
+  List<String> _currencies = [];
+  String? _expenseApprover;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExpenseTypes();
+    _fetchCurrencies();
+    _fetchEmployeeDetails();
+  }
+
+  Future<void> _fetchEmployeeDetails() async {
+    try {
+      final employee = await FrappeApi.fetchEmployeeDetails(
+        widget.employeeId,
+        byEmail: false,
+      );
+      if (mounted && employee != null) {
+        setState(() {
+          _expenseApprover = employee['expense_approver']?.toString();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchExpenseTypes() async {
+    try {
+      final types = await FrappeApi.getResourceList(
+        'Expense Claim Type',
+        params: {
+          'fields': '["name"]',
+          'limit_page_length': '0',
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _expenseTypes = types.map((e) => e['name'].toString()).toList();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchCurrencies() async {
+    try {
+      final currencies = await FrappeApi.getResourceList(
+        'Currency',
+        params: {
+          'fields': '["name"]',
+          'filters': '[["enabled","=","1"]]',
+          'limit_page_length': '0',
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _currencies = currencies.map((e) => e['name'].toString()).toList();
+          // Ensure default 'INR' is in the list, otherwise add it if needed or just rely on API
+          if (!_currencies.contains('INR')) {
+            _currencies.add('INR');
+          }
+          _currencies.sort();
+        });
+      }
+    } catch (_) {
+      // Fallback if API fails
+      if (mounted) {
+        setState(() {
+          if (!_currencies.contains('INR')) _currencies.add('INR');
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -531,6 +909,22 @@ class _ExpenseClaimFormSheetState extends State<_ExpenseClaimFormSheet> {
       initialDate: row.date ?? now,
       firstDate: first,
       lastDate: last,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.blueAccent,
+              onPrimary: Colors.white,
+              surface: Color(0xFF1E293B),
+              onSurface: Colors.white,
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF1E293B),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -558,9 +952,12 @@ class _ExpenseClaimFormSheetState extends State<_ExpenseClaimFormSheet> {
     for (final row in _rows) {
       if (row.date == null ||
           row.amount.trim().isEmpty ||
-          row.currency.trim().isEmpty) {
+          row.currency.trim().isEmpty ||
+          row.type == null ||
+          row.type!.trim().isEmpty) {
         Fluttertoast.showToast(
-          msg: 'Please fill Expense Date, Currency and Amount for all rows.',
+          msg:
+              'Please fill Expense Date, Currency, Type and Amount for all rows.',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
         );
@@ -578,24 +975,28 @@ class _ExpenseClaimFormSheetState extends State<_ExpenseClaimFormSheet> {
         final dateStr = DateFormat('yyyy-MM-dd').format(row.date!);
         return {
           'expense_date': dateStr,
-          'mode_of_payment': row.modeOfPayment,
-          'currency': row.currency.trim(),
-          'expense_type': row.type.trim(),
+          'custom_mode_of_payment': row.modeOfPayment,
+          'custom_currency': row.currency.trim(),
+          'expense_type': row.type!.trim(),
           'amount': double.tryParse(row.amount.trim()) ?? 0,
+          'custom_expense_amount': double.tryParse(row.amount.trim()) ?? 0,
         };
       }).toList();
       final doc = <String, dynamic>{
         'doctype': 'Expense Claim',
         'employee': widget.employeeId,
-        'remarks': _remarksController.text.trim(),
+        'expense_approver': _expenseApprover,
+        'custom_remarks': _remarksController.text.trim(),
         'expenses': expenses,
       };
-      await FrappeApi.callMethod(
+      debugPrint("Expense Claim Doc: $doc");
+      final response = await FrappeApi.callMethod(
         'frappe.client.insert',
         args: {
           'doc': jsonEncode(doc),
         },
       );
+      debugPrint("Expense Claim Success: $response");
       Fluttertoast.showToast(
         msg: 'Expense claim submitted.',
         toastLength: Toast.LENGTH_SHORT,
@@ -603,8 +1004,10 @@ class _ExpenseClaimFormSheetState extends State<_ExpenseClaimFormSheet> {
       );
       widget.onSubmitted();
     } catch (e) {
+      final message = e.toString().replaceAll('Exception: ', '');
+      debugPrint("Expense Claim Error: $e");
       Fluttertoast.showToast(
-        msg: e.toString(),
+        msg: message,
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
       );
@@ -619,247 +1022,333 @@ class _ExpenseClaimFormSheetState extends State<_ExpenseClaimFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Padding(
+    return GlassContainer(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        height: MediaQuery.of(context).size.height * 0.85, // Limit height
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Text(
+                const Text(
                   'Expense Claim',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    color: Colors.white,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, color: Colors.white),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              'Remarks',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 4),
-            TextField(
-              controller: _remarksController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Remarks',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Expenses (Expense Claim Detail)',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _rows.add(_ExpenseRowData());
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: const Text('Add Row'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _rows.length,
-              itemBuilder: (context, index) {
-                final row = _rows[index];
-                final rowLabel = 'Row ${index + 1}';
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            rowLabel,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Expenses (Details)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
-                          const Spacer(),
-                          if (_rows.length > 1)
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _rows.removeAt(index);
-                                });
-                              },
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                size: 20,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Expense Date',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      _DateField(
-                        label: _formatDate(row.date),
-                        onTap: () => _pickDate(context, row),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Mode of Payment',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('Cash'),
-                            selectedColor:
-                                const Color.fromARGB(255, 211, 209, 209),
-                            selected: row.modeOfPayment == 'Cash',
-                            onSelected: (_) {
-                              setState(() {
-                                row.modeOfPayment = 'Cash';
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('Personal Card'),
-                            selectedColor:
-                                const Color.fromARGB(255, 211, 209, 209),
-                            selected: row.modeOfPayment == 'Personal Card',
-                            onSelected: (_) {
-                              setState(() {
-                                row.modeOfPayment = 'Personal Card';
-                              });
-                            },
-                          ),
-                          ChoiceChip(
-                            label: const Text('Corporate Card'),
-                            selectedColor:
-                                const Color.fromARGB(255, 211, 209, 209),
-                            selected: row.modeOfPayment == 'Corporate Card',
-                            onSelected: (_) {
-                              setState(() {
-                                row.modeOfPayment = 'Corporate Card';
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Currency',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        onChanged: (value) {
-                          row.currency = value;
-                        },
-                        decoration: const InputDecoration(
-                          hintText: 'Currency',
-                          border: OutlineInputBorder(),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Expense Claim Type *',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        onChanged: (value) {
-                          row.type = value;
-                        },
-                        decoration: const InputDecoration(
-                          hintText: 'Expense Claim Type',
-                          border: OutlineInputBorder(),
+                        GlassButton(
+                          onPressed: () {
+                            setState(() {
+                              _rows.add(_ExpenseRowData());
+                            });
+                          },
+                          label: 'Add Row',
+                          icon: Icons.add,
+                          width: 100,
+                          height: 32,
+                          color: const Color.fromARGB(255, 21, 59, 126)
+                              .withValues(alpha: 0.3),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Expense Amount *',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      TextField(
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        onChanged: (value) {
-                          row.amount = value;
-                        },
-                        decoration: const InputDecoration(
-                          hintText: 'Expense Amount',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed:
-                        _submitting ? null : () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      ],
                     ),
-                    child: const Text('Close'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _submitting ? null : _handleSubmit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                    const SizedBox(height: 8),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _rows.length,
+                      itemBuilder: (context, index) {
+                        final row = _rows[index];
+                        final rowLabel = 'Row ${index + 1}';
+                        return GlassContainer(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      rowLabel,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    if (_rows.length > 1)
+                                      IconButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _rows.removeAt(index);
+                                          });
+                                        },
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          size: 20,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                const Text('Expense Date',
+                                    style: TextStyle(color: Colors.white70)),
+                                const SizedBox(height: 4),
+                                _DateField(
+                                  label: _formatDate(row.date),
+                                  onTap: () => _pickDate(context, row),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Mode of Payment',
+                                    style: TextStyle(color: Colors.white70)),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _buildChip(
+                                      label: 'Cash',
+                                      selected: row.modeOfPayment == 'Cash',
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          setState(() {
+                                            row.modeOfPayment = 'Cash';
+                                          });
+                                        }
+                                      },
+                                    ),
+                                    _buildChip(
+                                      label: 'Personal Card',
+                                      selected:
+                                          row.modeOfPayment == 'Personal Card',
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          setState(() {
+                                            row.modeOfPayment = 'Personal Card';
+                                          });
+                                        }
+                                      },
+                                    ),
+                                    _buildChip(
+                                      label: 'Corporate Card',
+                                      selected:
+                                          row.modeOfPayment == 'Corporate Card',
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          setState(() {
+                                            row.modeOfPayment =
+                                                'Corporate Card';
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Currency',
+                                    style: TextStyle(color: Colors.white70)),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _currencies.contains(row.currency)
+                                          ? row.currency
+                                          : null,
+                                      hint: const Text(
+                                        'Select Currency',
+                                        style: TextStyle(color: Colors.white38),
+                                      ),
+                                      dropdownColor: const Color(0xFF1E293B),
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.arrow_drop_down,
+                                          color: Colors.white),
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          setState(() {
+                                            row.currency = value;
+                                          });
+                                        }
+                                      },
+                                      items: _currencies.map((currency) {
+                                        return DropdownMenuItem<String>(
+                                          value: currency,
+                                          child: Text(currency),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Expense Claim Type *',
+                                    style: TextStyle(color: Colors.white70)),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: row.type,
+                                      hint: const Text(
+                                        'Select Type',
+                                        style: TextStyle(color: Colors.white38),
+                                      ),
+                                      dropdownColor: const Color(0xFF1E293B),
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.arrow_drop_down,
+                                          color: Colors.white),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          row.type = value;
+                                        });
+                                      },
+                                      items: _expenseTypes.map((type) {
+                                        return DropdownMenuItem<String>(
+                                          value: type,
+                                          child: Text(type),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text('Expense Amount *',
+                                    style: TextStyle(color: Colors.white70)),
+                                const SizedBox(height: 4),
+                                TextField(
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                          decimal: true),
+                                  onChanged: (value) {
+                                    row.amount = value;
+                                  },
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    hintText: 'Expense Amount',
+                                    hintStyle:
+                                        const TextStyle(color: Colors.white38),
+                                    filled: true,
+                                    fillColor:
+                                        Colors.white.withValues(alpha: 0.1),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 12),
+                                  ),
+                                ),
+                              ],
                             ),
-                          )
-                        : const Text('Submit'),
-                  ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 0),
+                    const Text('Remarks',
+                        style: TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _remarksController,
+                      maxLines: 3,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Remarks',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.1),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: GlassButton(
+                        onPressed: _handleSubmit,
+                        label: _submitting ? 'Submitting...' : 'Submit Claim',
+                        color: const Color.fromARGB(255, 21, 59, 126)
+                            .withValues(alpha: 0.3),
+                      ),
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).viewInsets.bottom +
+                          MediaQuery.of(context).padding.bottom +
+                          24,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildChip({
+    required String label,
+    required bool selected,
+    required ValueChanged<bool> onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selectedColor: Colors.blueAccent,
+      backgroundColor: Colors.white.withValues(alpha: 0.1),
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : Colors.white70,
+      ),
+      selected: selected,
+      onSelected: onSelected,
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 }

@@ -13,6 +13,10 @@ class FrappeApi {
   static String get baseUrl => _baseUrl;
   static String? get cookieHeader => _cookieHeader;
 
+  static void setCookieHeader(String? cookie) {
+    _cookieHeader = cookie;
+  }
+
   static String _normalizeBaseUrl(String input) {
     final raw = input.trim();
     if (raw.isEmpty) {
@@ -25,6 +29,84 @@ class FrappeApi {
     final origin =
         '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
     return origin.replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static String? _extractServerMessages(dynamic serverMessages) {
+    if (serverMessages is! String || serverMessages.trim().isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(serverMessages);
+      if (decoded is! List) {
+        return null;
+      }
+      final messages = <String>[];
+      for (final item in decoded) {
+        if (item is String) {
+          try {
+            final inner = jsonDecode(item);
+            if (inner is Map<String, dynamic>) {
+              final msg = inner['message']?.toString().trim();
+              if (msg != null && msg.isNotEmpty) {
+                messages.add(msg);
+              }
+            }
+          } catch (_) {
+            final msg = item.trim();
+            if (msg.isNotEmpty) {
+              messages.add(msg);
+            }
+          }
+        } else if (item is Map) {
+          final msg = item['message']?.toString().trim();
+          if (msg != null && msg.isNotEmpty) {
+            messages.add(msg);
+          }
+        }
+      }
+      if (messages.isEmpty) {
+        return null;
+      }
+      return messages.join('\n');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _extractErrorMessageFromBody(
+    int status,
+    Map<String, dynamic> body,
+  ) {
+    final serverMessages = _extractServerMessages(body['_server_messages']);
+    if (serverMessages != null && serverMessages.isNotEmpty) {
+      return serverMessages;
+    }
+
+    final rawMessage = body['message'];
+    if (rawMessage is String && rawMessage.trim().isNotEmpty) {
+      return rawMessage.trim();
+    }
+    if (rawMessage is Map<String, dynamic>) {
+      final msg = rawMessage['message']?.toString().trim();
+      if (msg != null && msg.isNotEmpty) {
+        return msg;
+      }
+    }
+
+    if (body['exc_type'] == 'PermissionError') {
+      return 'Permission Error: You do not have access to this resource.';
+    }
+    if (body['exception'] != null) {
+      String raw = body['exception'].toString();
+      if (raw.contains(':')) {
+        raw = raw.substring(raw.indexOf(':') + 1).trim();
+      } else {
+        raw = raw.split('.').last;
+      }
+      return raw.replaceAll(RegExp(r'<[^>]*>'), '');
+    }
+
+    return 'Request failed with status $status';
   }
 
   static void setBaseUrl(String url) {
@@ -41,7 +123,10 @@ class FrappeApi {
         'Content-Type': 'application/json',
       },
       followRedirects: true,
-      validateStatus: (status) => status != null && status < 500,
+      // Let us handle all HTTP statuses (including 5xx) ourselves,
+      // so we can parse _server_messages and return meaningful errors.
+      validateStatus: (status) =>
+          status != null && status >= 100 && status < 600,
     );
   }
 
@@ -98,9 +183,11 @@ class FrappeApi {
           'status=$status',
         );
         if (value is Map<String, dynamic>) {
+          // print('[FrappeApi] Response Data: $value');
           return value;
         }
         if (value is String) {
+          // print('[FrappeApi] Response String: $value');
           return jsonDecode(value) as Map<String, dynamic>;
         }
         return {'data': value};
@@ -112,10 +199,10 @@ class FrappeApi {
         'status=$status body=${value is String ? value : jsonEncode(value)}',
       );
       final dataBody = value;
-      final message = dataBody is Map<String, dynamic>
-          ? (dataBody['message']?.toString() ??
-              'Request failed with status $status')
-          : 'Request failed with status $status';
+      String message = 'Request failed with status $status';
+      if (dataBody is Map<String, dynamic>) {
+        message = _extractErrorMessageFromBody(status, dataBody);
+      }
       throw Exception(message);
     } catch (e) {
       // ignore: avoid_print
@@ -199,6 +286,16 @@ class FrappeApi {
     }
   }
 
+  static Future<Map<String, dynamic>> resetPassword(String email) async {
+    return _request(
+      'api/method/tbui_backend_core.api.reset_password',
+      method: 'POST',
+      data: {
+        'email': email,
+      },
+    );
+  }
+
   static Future<Map<String, dynamic>> getCurrentUser() async {
     final res = await _request(
       'api/method/frappe.auth.get_logged_user',
@@ -274,6 +371,16 @@ class FrappeApi {
     }
     final query = Map<String, dynamic>.from(safeParams);
     final encodedDoctype = Uri.encodeComponent(doctype);
+
+    // Convert complex params to JSON strings if they are not already
+    // Frappe expects filters and fields to be JSON strings
+    if (query.containsKey('filters') && query['filters'] is! String) {
+      query['filters'] = jsonEncode(query['filters']);
+    }
+    if (query.containsKey('fields') && query['fields'] is! String) {
+      query['fields'] = jsonEncode(query['fields']);
+    }
+
     final res = await _request(
       'api/resource/$encodedDoctype',
       query: query,
@@ -335,7 +442,7 @@ class FrappeApi {
     );
   }
 
-  static Future<Position> getGeolocation() async {
+  static Future<Position> getCurrentPosition() async {
     final permission = await Geolocator.requestPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
@@ -345,5 +452,13 @@ class FrappeApi {
       desiredAccuracy: LocationAccuracy.medium,
     );
     return position;
+  }
+
+  static Future<Map<String, dynamic>> getMetaData(String doctype) async {
+    final res = await _request(
+      'api/method/frappe.desk.form.load.getdoctype',
+      query: {'doctype': doctype},
+    );
+    return res;
   }
 }

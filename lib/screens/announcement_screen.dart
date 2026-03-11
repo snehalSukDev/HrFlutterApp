@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
+import '../widgets/glass/app_background.dart';
 
 class AnnouncementScreen extends StatefulWidget {
   final String? currentUserEmail;
@@ -44,10 +46,10 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     }
     try {
       final data = await FrappeApi.getResourceList(
-        'HR Announcement',
+        'Announcement',
         params: {
           'order_by': 'creation desc',
-          'limit_page_length': '50',
+          'limit_page_length': 50,
         },
         cache: true,
         forceRefresh: refresh,
@@ -56,8 +58,21 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
         _allAnnouncements = data;
       });
     } catch (e) {
+      String errorMessage = e.toString();
+      // Remove "Exception: " prefix if present
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.replaceFirst('Exception: ', '');
+      }
+
+      // Handle specific PermissionError for Announcements
+      if (errorMessage.contains('Permission Error') ||
+          errorMessage.contains('PermissionError')) {
+        errorMessage =
+            'Permission Error: The Employee does not have permission to access Announcements.';
+      }
+
       setState(() {
-        _error = e.toString();
+        _error = errorMessage;
       });
     } finally {
       setState(() {
@@ -68,9 +83,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   }
 
   List<Map<String, dynamic>> _filteredAnnouncements() {
-    final List<Map<String, dynamic>> base = _allAnnouncements
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    final List<Map<String, dynamic>> base =
+        _allAnnouncements.whereType<Map<String, dynamic>>().toList();
     final query = _searchQuery.trim().toLowerCase();
     return base.where((item) {
       final status = item['status']?.toString() ?? '';
@@ -88,32 +102,32 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final list = _filteredAnnouncements();
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Announcement',
-        onLogout: widget.onLogout,
-        userInitials: widget.userInitials ?? widget.currentUserEmail,
-        currentUserEmail: widget.currentUserEmail,
-        currentEmployeeId: widget.currentEmployeeId,
-        showBack: true,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () {
-          setState(() {
-            _refreshing = true;
-          });
-          return _loadData(refresh: true);
-        },
-        child: _buildBody(context, theme, list),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: MainAppBar(
+          title: 'Announcements',
+          onLogout: widget.onLogout,
+          userInitials: widget.userInitials,
+          currentUserEmail: widget.currentUserEmail,
+          currentEmployeeId: widget.currentEmployeeId,
+        ),
+        body: RefreshIndicator(
+          onRefresh: () {
+            setState(() {
+              _refreshing = true;
+            });
+            return _loadData(refresh: true);
+          },
+          child: _buildBody(context, list),
+        ),
       ),
     );
   }
 
   Widget _buildBody(
     BuildContext context,
-    ThemeData theme,
     List<Map<String, dynamic>> announcements,
   ) {
     if (_loading && !_refreshing) {
@@ -137,6 +151,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -157,24 +172,33 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
               _searchQuery = value;
             });
           },
-          decoration: const InputDecoration(
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
             hintText: 'Search announcements',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(),
+            hintStyle: const TextStyle(color: Colors.white38),
+            prefixIcon: const Icon(Icons.search, color: Colors.white70),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Text(
+            const Text(
               'Status:',
-              style: theme.textTheme.bodyMedium,
+              style: TextStyle(color: Colors.white, fontSize: 14),
             ),
             const SizedBox(width: 8),
-            ChoiceChip(
-              label: const Text('All'),
+            _FilterChip(
+              label: 'All',
               selected: _statusFilter == 'All',
-              onSelected: (_) {
+              onSelected: () {
                 setState(() {
                   _statusFilter = 'All';
                 });
@@ -183,6 +207,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             const Spacer(),
             DropdownButton<String>(
               value: _statusFilter,
+              dropdownColor: const Color(0xFF1E293B),
+              style: const TextStyle(color: Colors.white),
               onChanged: (value) {
                 if (value == null) {
                   return;
@@ -213,64 +239,60 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.view_list_outlined,
-                color: Color(0xFF6B7280),
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Announcements',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
+        GlassContainer(
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.view_list_outlined,
+                  color: Colors.white70,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Announcements',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF271085),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${announcements.length}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${announcements.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
         if (announcements.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 24),
-            child: Center(
-              child: Text(
+          const Padding(
+            padding: EdgeInsets.only(top: 24),
+            child: const Center(
+              child: const Text(
                 'No announcements found.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.textTheme.bodyMedium?.color
-                      ?.withValues(alpha: 0.7),
-                ),
+                style: const TextStyle(color: Colors.white70),
               ),
             ),
           )
         else
           ...announcements.map((item) {
             final subject = item['subject']?.toString() ?? 'Announcement';
-            final description =
-                item['description']?.toString() ?? '';
+            final description = item['description']?.toString() ?? '';
             final status = item['status']?.toString() ?? 'Draft';
             Color statusColor;
             switch (status) {
@@ -288,14 +310,8 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             }
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Card(
-                elevation: 1,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color.fromARGB(255, 43, 26, 26)
-                    : null,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              child: GlassContainer(
+                borderRadius: BorderRadius.circular(12),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: statusColor.withValues(alpha: 0.1),
@@ -304,11 +320,13 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                       color: statusColor,
                     ),
                   ),
-                  title: Text(subject),
+                  title: Text(subject,
+                      style: const TextStyle(color: Colors.white)),
                   subtitle: Text(
                     description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(
@@ -316,7 +334,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.08),
+                      color: statusColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -333,6 +351,45 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             );
           }),
       ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onSelected,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? Colors.white.withValues(alpha: 0.2)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? Colors.white : Colors.white38,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.white70,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

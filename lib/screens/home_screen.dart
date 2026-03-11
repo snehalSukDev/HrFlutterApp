@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
 import 'expense_claim_screen.dart';
 import 'announcement_screen.dart';
 
@@ -29,10 +29,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _loading = true;
-  bool _refreshing = false;
-  String? _error;
-
   Map<String, dynamic>? _employeeProfile;
   List<dynamic> _checkins = const [];
   List<dynamic> _holidays = const [];
@@ -66,12 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadAll({bool refresh = false}) async {
-    if (!refresh) {
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-    }
     try {
       final profile = await _fetchProfile();
       if (profile != null) {
@@ -81,35 +71,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ]);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _refreshing = false;
-        });
-      }
+      debugPrint(e.toString());
     }
   }
 
   Future<void> _loadLocation() async {
     try {
-      final position = await FrappeApi.getGeolocation();
+      final position = await FrappeApi.getCurrentPosition();
       if (!mounted) {
         return;
       }
-      final lat = position.latitude;
-      final lon = position.longitude;
-      if (lat.isNaN || lon.isNaN) {
-        return;
-      }
       setState(() {
-        _latitude = lat;
-        _longitude = lon;
+        _latitude = position.latitude;
+        _longitude = position.longitude;
         _locationError = null;
       });
     } catch (e) {
@@ -117,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       setState(() {
-        _locationError = e.toString();
+        _locationError = 'Location unavailable';
       });
     }
   }
@@ -158,9 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<Map<String, dynamic>?> _fetchProfile() async {
     final email = widget.currentUserEmail?.trim();
     if (email == null || email.isEmpty) {
-      setState(() {
-        _error = 'Logged in user email is not available.';
-      });
+      debugPrint('Logged in user email is not available.');
       return null;
     }
     final profile = await FrappeApi.fetchEmployeeDetails(
@@ -296,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _pendingLogType = logType;
     });
     try {
-      final position = await FrappeApi.getGeolocation();
+      final position = await FrappeApi.getCurrentPosition();
       final now = DateTime.now();
       final timeString =
           '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
@@ -346,45 +318,55 @@ class _HomeScreenState extends State<HomeScreen> {
     return success;
   }
 
-  String _formatLastSwipe() {
-    final last = _lastCheckin;
-    if (last == null) {
-      return '-';
-    }
-    final raw = last['time']?.toString();
-    if (raw == null || raw.isEmpty) {
-      return '-';
-    }
+  String _formatTime(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return '--:--';
     try {
-      final d = DateTime.parse(raw);
-      return '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year.toString().substring(2)} '
-          '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      final parts = timeStr.split(':');
+      if (parts.length >= 2) {
+        return '${parts[0]}:${parts[1]}';
+      }
+      return timeStr;
     } catch (_) {
-      return raw;
+      return timeStr;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final profile = _employeeProfile;
-    final greeting = _greeting();
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: MainAppBar(
         title: 'Home',
         onLogout: widget.onLogout,
-        userInitials: _userInitials(profile),
+        userInitials: _userInitials(_employeeProfile),
         currentUserEmail: widget.currentUserEmail,
         currentEmployeeId: widget.currentEmployeeId,
+        showBack: false,
       ),
       body: RefreshIndicator(
-        onRefresh: () {
-          setState(() {
-            _refreshing = true;
-          });
-          return _loadAll(refresh: true);
+        onRefresh: () async {
+          await _loadAll(refresh: true);
         },
-        child: _buildBody(context, theme, profile, greeting),
+        child: _buildBody(context),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildGreetingCard(Theme.of(context)),
+          const SizedBox(height: 24),
+          _buildQuickActions(Theme.of(context)),
+          const SizedBox(height: 24),
+          _buildCelebrationCard(Theme.of(context)),
+          const SizedBox(height: 24),
+          _buildHolidays(Theme.of(context)),
+          const SizedBox(height: 100), // Space for bottom nav
+        ],
       ),
     );
   }
@@ -407,214 +389,161 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    ThemeData theme,
-    Map<String, dynamic>? profile,
-    String greeting,
-  ) {
-    if (_loading && !_refreshing) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 40,
-                color: Colors.red,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => _loadAll(refresh: true),
-                child: const Text('Try again'),
-              ),
-            ],
+  Widget _buildGreetingCard(ThemeData theme) {
+    final name = _employeeProfile?['employee_name'] ?? 'User';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _greeting(),
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-      );
-    }
-    if (profile == null) {
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          Text('No profile data available.'),
-        ],
-      );
-    }
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        Text(
+          name,
+          style: const TextStyle(
+            fontSize: 18,
+            color: Colors.white70,
           ),
-          color: const Color(0xFF213465),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+        ),
+        const SizedBox(height: 20),
+        GlassContainer(
+          borderRadius: BorderRadius.circular(24),
+          color: Colors.black,
+          opacity: 0.1,
+          blur: 10,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: theme.brightness == Brightness.dark
-                          ? const Color.fromARGB(255, 43, 26, 26)
-                          : const Color.fromARGB(255, 129, 128, 128),
-                      child: Text(
-                        (_userInitials(profile) ?? '?').toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: theme.brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            greeting,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            profile['employee_name']?.toString() ?? '',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Last swipe: ${_formatLastSwipe()}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
+                    const Icon(Icons.location_on,
+                        color: Colors.blueAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'My Location',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                _buildLocationCard(theme),
-                const SizedBox(height: 16),
-                _buildPunchSlider(theme),
-                const SizedBox(height: 16),
-                _buildQuickActions(context),
-              ],
-            ),
+              ),
+              SizedBox(
+                height: 200,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _buildMapView(theme),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildPunchSlider(theme),
+              const SizedBox(height: 16),
+              if (_lastCheckin != null)
+                Center(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _lastCheckin!['log_type'] == 'IN'
+                              ? Icons.login
+                              : Icons.logout,
+                          color: _lastCheckin!['log_type'] == 'IN'
+                              ? Colors.greenAccent
+                              : Colors.orangeAccent,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Last Punch: ${_formatTime(_lastCheckin!['time'])}',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        _buildCelebrationCard(theme),
-        const SizedBox(height: 16),
-        _buildHolidays(theme),
       ],
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _buildQuickActions(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Quick Actions',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.4),
-              ),
-            ),
-          ],
+        Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _QuickAction(
               icon: Icons.request_quote_outlined,
-              label: 'Expense Claim',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (ctx) => ExpenseClaimScreen(
-                      currentUserEmail: widget.currentUserEmail,
-                      currentEmployeeId: widget.currentEmployeeId,
-                      onLogout: widget.onLogout,
-                      userInitials: _userInitials(_employeeProfile),
-                    ),
+              label: 'Claims',
+              color: Colors.blueAccent,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => ExpenseClaimScreen(
+                    currentUserEmail: widget.currentUserEmail,
+                    currentEmployeeId: widget.currentEmployeeId,
+                    onLogout: widget.onLogout,
+                    userInitials: _userInitials(_employeeProfile),
                   ),
-                );
-              },
+                ),
+              ),
             ),
             _QuickAction(
               icon: Icons.access_time,
               label: 'Attendance',
-              onTap: () {
-                widget.onTabChange?.call(2);
-              },
+              color: Colors.purpleAccent,
+              onTap: () => widget.onTabChange?.call(2),
             ),
             _QuickAction(
               icon: Icons.event_available,
               label: 'Leave',
-              onTap: () {
-                widget.onTabChange?.call(3);
-              },
+              color: Colors.orangeAccent,
+              onTap: () => widget.onTabChange?.call(3),
             ),
             _QuickAction(
               icon: Icons.campaign_outlined,
               label: 'Announcement',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (ctx) => AnnouncementScreen(
-                      currentUserEmail: widget.currentUserEmail,
-                      currentEmployeeId: widget.currentEmployeeId,
-                      onLogout: widget.onLogout,
-                      userInitials: _userInitials(_employeeProfile),
-                    ),
+              color: Colors.pinkAccent,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => AnnouncementScreen(
+                    currentUserEmail: widget.currentUserEmail,
+                    currentEmployeeId: widget.currentEmployeeId,
+                    onLogout: widget.onLogout,
+                    userInitials: _userInitials(_employeeProfile),
                   ),
-                );
-              },
+                ),
+              ),
             ),
           ],
         ),
@@ -623,291 +552,120 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCelebrationCard(ThemeData theme) {
-    final hasBirthdays = _birthdays.isNotEmpty;
-    final hasAnniversaries = _anniversaries.isNotEmpty;
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final cardBackgroundColor = isDarkMode
-        ? const Color.fromARGB(255, 43, 26, 26)
-        : theme.colorScheme.surface;
+    if (_birthdays.isEmpty && _anniversaries.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-    if (!hasBirthdays && !hasAnniversaries) {
-      return Card(
-        elevation: 2,
-        color: cardBackgroundColor,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Celebrations',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GlassContainer(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.black,
+          opacity: 0.6,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '🎉 Celebrations',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'No birthdays or work anniversaries today.',
-                style: theme.textTheme.bodyMedium,
-              ),
+              if (_birthdays.isNotEmpty) ...[
+                _buildEventSection(
+                    'Birthdays', Icons.cake, Colors.pinkAccent, _birthdays),
+                if (_anniversaries.isNotEmpty)
+                  Divider(
+                      color: Colors.white.withValues(alpha: 0.1), height: 32),
+              ],
+              if (_anniversaries.isNotEmpty)
+                _buildEventSection(
+                    'Work Anniversaries',
+                    Icons.workspace_premium,
+                    Colors.amberAccent,
+                    _anniversaries),
             ],
           ),
         ),
-      );
-    }
-    return Card(
-      elevation: 2,
-      color: cardBackgroundColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '🎉 Celebrations',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (hasBirthdays) ...[
-              // Divider(
-              //   height: 24,
-              //   thickness: 1,
-              //   color: theme.dividerColor,
-              // ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.card_giftcard,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Birthdays',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 110,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _birthdays.length,
-                  itemBuilder: (context, index) {
-                    final item = _birthdays[index] as Map<String, dynamic>;
-                    final name = item['employee_name']?.toString() ??
-                        item['name']?.toString() ??
-                        '';
-                    final initial = name.isNotEmpty
-                        ? name.trim().substring(0, 1).toUpperCase()
-                        : '?';
-                    return Container(
-                      width: 100,
-                      margin: EdgeInsets.only(
-                        right: index == _birthdays.length - 1 ? 0 : 10,
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: cardBackgroundColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isDarkMode
-                              ? Colors.grey.shade600
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDarkMode
-                                  ? Colors.grey.shade600
-                                  : Colors.grey.shade300,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              initial,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode
-                                    ? Colors.grey.shade200
-                                    : Colors.grey.shade700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Today',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-            if (hasAnniversaries) ...[
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(
-                    Icons.workspace_premium,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Work Anniversaries',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 110,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _anniversaries.length,
-                  itemBuilder: (context, index) {
-                    final item = _anniversaries[index] as Map<String, dynamic>;
-                    final name = item['employee_name']?.toString() ??
-                        item['name']?.toString() ??
-                        '';
-                    final initial = name.isNotEmpty
-                        ? name.trim().substring(0, 1).toUpperCase()
-                        : '?';
-                    return Container(
-                      width: 100,
-                      margin: EdgeInsets.only(
-                        right: index == _anniversaries.length - 1 ? 0 : 10,
-                      ),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: cardBackgroundColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isDarkMode
-                              ? Colors.grey.shade600
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDarkMode
-                                  ? Colors.grey.shade600
-                                  : Colors.grey.shade300,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              initial,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: isDarkMode
-                                    ? Colors.grey.shade200
-                                    : Colors.grey.shade700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Anniversary',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+      ],
     );
   }
 
-  Widget _buildLocationCard(ThemeData theme) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildEventSection(
+      String title, IconData icon, Color color, List<dynamic> events) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on,
-                  size: 18,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'My Location',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 250,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _buildMapView(theme),
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 100,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: events.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final item = events[index];
+              final name = item['employee_name']?.toString() ??
+                  item['name']?.toString() ??
+                  '';
+              final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+              return Container(
+                width: 80,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: color.withValues(alpha: 0.2),
+                      child: Text(
+                        initial,
+                        style: TextStyle(
+                            color: color, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -1174,156 +932,178 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHolidays(ThemeData theme) {
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final cardBackgroundColor = isDarkMode
-        ? const Color.fromARGB(255, 43, 26, 26)
-        : theme.colorScheme.surface;
-
     if (_holidays.isEmpty) {
-      return Card(
-        elevation: 2,
-        color: cardBackgroundColor,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'No upcoming holidays.',
-            style: theme.textTheme.bodyMedium,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Upcoming Holidays',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          GlassContainer(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.black,
+            opacity: 0.6,
+            width: double.infinity,
+            child: Text(
+              'No upcoming holidays.',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+        ],
       );
     }
-    return Card(
-      elevation: 2,
-      color: cardBackgroundColor,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_month,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Upcoming Holidays',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Upcoming Holidays',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GlassContainer(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.black,
+          opacity: 0.5,
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_month,
+                    color: Colors.greenAccent,
+                    size: 20,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ..._holidays.map((raw) {
-              final item = raw as Map<String, dynamic>;
-              final desc = item['description']?.toString() ?? '';
-              final dateRaw = item['holiday_date']?.toString() ??
-                  item['date']?.toString() ??
-                  '';
-              String day = '';
-              String month = '';
-              String weekday = '';
-              if (dateRaw.isNotEmpty) {
-                try {
-                  final d = DateTime.parse(dateRaw);
-                  day = d.day.toString().padLeft(2, '0');
-                  final months = [
-                    'Jan',
-                    'Feb',
-                    'Mar',
-                    'Apr',
-                    'May',
-                    'Jun',
-                    'Jul',
-                    'Aug',
-                    'Sep',
-                    'Oct',
-                    'Nov',
-                    'Dec'
-                  ];
-                  month = months[d.month - 1];
-                  final weekdays = [
-                    'Monday',
-                    'Tuesday',
-                    'Wednesday',
-                    'Thursday',
-                    'Friday',
-                    'Saturday',
-                    'Sunday'
-                  ];
-                  weekday = weekdays[d.weekday - 1];
-                } catch (_) {}
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: isDarkMode
-                            ? cardBackgroundColor.withValues(alpha: 0.7)
-                            : theme.colorScheme.primary.withValues(alpha: 0.1),
-                      ),
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            day.isEmpty ? '??' : day,
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            month.isEmpty ? 'N/A' : month,
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Holidays',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            desc,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (weekday.isNotEmpty)
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ..._holidays.map((raw) {
+                final item = raw as Map<String, dynamic>;
+                final desc = item['description']?.toString() ?? '';
+                final dateRaw = item['holiday_date']?.toString() ??
+                    item['date']?.toString() ??
+                    '';
+                String day = '';
+                String month = '';
+                String weekday = '';
+                if (dateRaw.isNotEmpty) {
+                  try {
+                    final d = DateTime.parse(dateRaw);
+                    day = d.day.toString().padLeft(2, '0');
+                    final months = [
+                      'Jan',
+                      'Feb',
+                      'Mar',
+                      'Apr',
+                      'May',
+                      'Jun',
+                      'Jul',
+                      'Aug',
+                      'Sep',
+                      'Oct',
+                      'Nov',
+                      'Dec'
+                    ];
+                    month = months[d.month - 1];
+                    final weekdays = [
+                      'Monday',
+                      'Tuesday',
+                      'Wednesday',
+                      'Thursday',
+                      'Friday',
+                      'Saturday',
+                      'Sunday'
+                    ];
+                    weekday = weekdays[d.weekday - 1];
+                  } catch (_) {}
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white.withValues(alpha: 0.1),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
-                              weekday,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDarkMode
-                                    ? Colors.grey.shade400
-                                    : theme.textTheme.bodySmall?.color
-                                        ?.withValues(alpha: 0.7),
+                              day.isEmpty ? '??' : day,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                        ],
+                            Text(
+                              month.isEmpty ? 'N/A' : month.toUpperCase(),
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              desc,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (weekday.isNotEmpty)
+                              Text(
+                                weekday,
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -1332,16 +1112,17 @@ class _QuickAction extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color? color;
 
   const _QuickAction({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
@@ -1353,7 +1134,7 @@ class _QuickAction extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFF5B4ED6),
+                color: color ?? const Color(0xFF5B4ED6),
                 borderRadius: BorderRadius.circular(24),
               ),
               alignment: Alignment.center,
@@ -1366,7 +1147,8 @@ class _QuickAction extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               label,
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: TextStyle(
+                fontSize: 12,
                 color: Colors.white,
               ),
               textAlign: TextAlign.center,

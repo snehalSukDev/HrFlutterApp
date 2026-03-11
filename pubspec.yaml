@@ -26,11 +26,33 @@ dependencies:
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
   fluttertoast: ^8.2.4
+  video_player: ^2.8.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/techbirdbg.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/techbirdbg.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/images/techbirdbg.png"
+    background_color: "#ffffff"
+    theme_color: "#ffffff"
+  windows:
+    generate: true
+    image_path: "assets/images/techbirdbg.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/images/techbirdbg.png"
 
 flutter:
   uses-material-design: true
@@ -41,3 +63,4 @@ flutter:
     - assets/images/techbirdbg.png
     - assets/images/techbirdicon.png
     - assets/images/techbirdlogonew.png
+    - assets/videos/background_video.mp4

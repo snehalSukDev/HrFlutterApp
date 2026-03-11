@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:dio/dio.dart';
@@ -11,6 +13,9 @@ import 'package:intl/intl.dart';
 
 import '../services/frappe_api.dart';
 import '../widgets/main_app_bar.dart';
+import '../widgets/glass/glass_container.dart';
+import '../widgets/glass/app_background.dart';
+import '../widgets/glass/glass_button.dart';
 
 class SalarySlipScreen extends StatefulWidget {
   final String? currentUserEmail;
@@ -89,7 +94,7 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
           'filters': filters,
           'fields': fields,
           'order_by': 'start_date desc',
-          'limit_page_length': '50',
+          'limit_page_length': 50,
         },
         cache: true,
         forceRefresh: refresh,
@@ -142,22 +147,25 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: MainAppBar(
-        title: 'Payslips',
-        onLogout: widget.onLogout,
-        userInitials: widget.userInitials ?? widget.currentUserEmail,
-        currentUserEmail: widget.currentUserEmail,
-        currentEmployeeId: widget.currentEmployeeId,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () {
-          setState(() {
-            _refreshing = true;
-          });
-          return _loadData(refresh: true);
-        },
-        child: _buildBody(context),
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: MainAppBar(
+          title: 'Payslips',
+          onLogout: widget.onLogout,
+          userInitials: widget.userInitials ?? widget.currentUserEmail,
+          currentUserEmail: widget.currentUserEmail,
+          currentEmployeeId: widget.currentEmployeeId,
+        ),
+        body: RefreshIndicator(
+          onRefresh: () {
+            setState(() {
+              _refreshing = true;
+            });
+            return _loadData(refresh: true);
+          },
+          child: _buildBody(context),
+        ),
       ),
     );
   }
@@ -184,6 +192,7 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
@@ -197,58 +206,148 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
     }
     if (_slips.isEmpty) {
       return const Center(
-        child: Text('No salary slips found.'),
+        child: Text('No salary slips found.',
+            style: TextStyle(color: Colors.white70)),
       );
     }
-    return ListView.separated(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _slips.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemCount: _slips.length + 1, // +1 for header
       itemBuilder: (context, index) {
-        final item = _slips[index] as Map<String, dynamic>;
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GlassContainer(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.black,
+              opacity: 0.2,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.list_alt,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Salary List',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_slips.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        final item = _slips[index - 1] as Map<String, dynamic>;
         final period =
             '${_formatDate(item['start_date']?.toString())} → ${_formatDate(item['end_date']?.toString())}';
         final status = item['status']?.toString() ?? '';
         final currency = item['currency']?.toString() ?? '';
         final netPay = (item['net_pay'] ?? '').toString();
         final statusColor = _getStatusColor(status);
-        return Card(
-          elevation: 1,
-          child: ListTile(
-            onTap: () {
-              final name = item['name']?.toString();
-              if (name != null && name.isNotEmpty) {
-                _showSalarySlipModal(context, name);
-              }
-            },
-            leading: CircleAvatar(
-              backgroundColor: statusColor.withValues(alpha: 0.1),
-              child: Icon(
-                Icons.receipt_long,
-                color: statusColor,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: GlassContainer(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.black,
+            opacity: 0.5,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () {
+                final name = item['name']?.toString();
+                if (name != null && name.isNotEmpty) {
+                  _showSalarySlipModal(context, name);
+                }
+              },
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.receipt_long,
+                        color: statusColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            period,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            status,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$currency $netPay',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item['name']?.toString() ?? '',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            title: Text(period),
-            subtitle: Text(status),
-            trailing: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '$currency $netPay',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item['name']?.toString() ?? '',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
             ),
           ),
         );
@@ -268,103 +367,90 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(maxHeight: 500),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Salary Slip',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildDetailRow('ID', slip['name']?.toString() ?? ''),
-              _buildDetailRow('Employee', widget.currentUserEmail ?? ''),
-              _buildDetailRow(
-                'Period',
-                '${_formatDate(slip['start_date']?.toString())} - ${_formatDate(slip['end_date']?.toString())}',
-              ),
-              _buildDetailRow(
-                'Gross Pay',
-                '${slip['currency'] ?? ''} ${slip['gross_pay'] ?? '0.00'}',
-              ),
-              _buildDetailRow(
-                'Net Pay',
-                '${slip['currency'] ?? ''} ${slip['net_pay'] ?? '0.00'}',
-              ),
-              _buildDetailRow('Status', slip['status']?.toString() ?? ''),
-              const Spacer(),
-              // Action buttons (similar to React Native)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _handleShare(slipName),
-                      icon: const Icon(Icons.share),
-                      label: const Text('Share'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+        backgroundColor: Colors.transparent,
+        child: GlassContainer(
+          borderRadius: BorderRadius.circular(16),
+          color: const Color.fromARGB(255, 28, 12, 67),
+          opacity: 0.5,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 500),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Salary Slip',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _handleGetPdf(slipName),
-                      icon: const Icon(Icons.picture_as_pdf),
-                      label: const Text('PDF'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildDetailRow('ID', slip['name']?.toString() ?? ''),
+                _buildDetailRow('Employee', widget.currentUserEmail ?? ''),
+                _buildDetailRow(
+                  'Period',
+                  '${_formatDate(slip['start_date']?.toString())} - ${_formatDate(slip['end_date']?.toString())}',
+                ),
+                _buildDetailRow(
+                  'Gross Pay',
+                  '${slip['currency'] ?? ''} ${slip['gross_pay'] ?? '0.00'}',
+                ),
+                _buildDetailRow(
+                  'Net Pay',
+                  '${slip['currency'] ?? ''} ${slip['net_pay'] ?? '0.00'}',
+                ),
+                _buildDetailRow('Status', slip['status']?.toString() ?? ''),
+                const Spacer(),
+                // Action buttons (similar to React Native)
+                Row(
+                  children: [
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () => _handleShare(slipName),
+                        icon: Icons.share,
+                        label: 'Share',
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showWebViewModal(context, slipName);
-                  },
-                  icon: const Icon(Icons.visibility, color: Colors.white),
-                  label: const Text(
-                    'View Slip',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF271085),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () => _handleGetPdf(slipName),
+                        icon: Icons.picture_as_pdf,
+                        label: 'PDF',
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: GlassButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showWebViewModal(this.context, slipName);
+                    },
+                    icon: Icons.visibility,
+                    label: 'View Slip',
+                    color: Colors.blueAccent.withValues(alpha: 0.5),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -380,7 +466,7 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.grey,
+              color: Colors.white54,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -388,6 +474,7 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
             value,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
           ),
         ],
@@ -400,6 +487,7 @@ class _SalarySlipScreenState extends State<SalarySlipScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: false,
       builder: (context) => _SalarySlipViewer(slipName: slipName),
     );
   }
@@ -678,7 +766,14 @@ class _SalarySlipViewerState extends State<_SalarySlipViewer> {
             Expanded(
               child: Stack(
                 children: [
-                  WebViewWidget(controller: _controller),
+                  WebViewWidget(
+                    controller: _controller,
+                    gestureRecognizers: {
+                      Factory<VerticalDragGestureRecognizer>(
+                        () => VerticalDragGestureRecognizer(),
+                      ),
+                    },
+                  ),
                   if (_isLoading)
                     Container(
                       color: Colors.white.withValues(alpha: 0.8),
